@@ -8,7 +8,7 @@ const socketIO = require('socket.io');
 
 // Configuración de CORS
 const corsOptions = {
-   origin: 'http://localhost:3000',  // Actualizado para localhost
+   origin: 'http://0.0.0.0:4000',  // Actualizado para localhost
    optionsSuccessStatus: 200,
 };
 
