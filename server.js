@@ -5,19 +5,28 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
 const socketIO = require('socket.io');
-require('dotenv').config(); // Load environment variables
+require('dotenv').config(); // Carga las variables de entorno
 
 // Configuración de CORS
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN || '*',  // Use environment variable or allow all origins
+    origin: process.env.CORS_ORIGIN || '*',  // Usa la variable de entorno o permite todos los orígenes
     optionsSuccessStatus: 200,
 };
 
 const app = express();
 
-// Cambiar a HTTP para desarrollo local
+// Configura el servidor HTTP
 const server = http.createServer(app);
-const io = socketIO(server);
+
+// Configura socket.io con opciones CORS
+const io = socketIO(server, {
+    cors: {
+        origin: process.env.CORS_ORIGIN || '*',  // Usa la variable de entorno o permite todos los orígenes
+        methods: ["GET", "POST"],
+        allowedHeaders: ["my-custom-header"],
+        credentials: true
+    }
+});
 
 // Middleware para prevenir caché
 app.use((req, res, next) => {
@@ -40,8 +49,8 @@ app.get("/s/:id", (req, res) => {
     res.sendFile('public/viewer.html', { root: __dirname });
 });
 
-const port = process.env.PORT || 4000; // Use PORT environment variable or default to 4000
-const host = '0.0.0.0';  // Bind to 0.0.0.0 for external access
+const port = process.env.PORT || 4000; // Usa la variable de entorno PORT o un valor por defecto
+const host = '0.0.0.0';  // Vincula a todas las interfaces
 
 server.listen(port, host, () => {
     console.log(`Server is running on http://${host}:${port}`);
