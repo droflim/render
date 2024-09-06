@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer</title>
+    <style> 
+        #video {
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="text-container"></div>
+    <div id="list-container"></div>
+    <button onclick="clearData()">Borrar Cache</button>
+    <button onclick="handleWatch()">Watch</button>
+    <video autoplay id='video'></video>
+    
+    <script>
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        const nick = getQueryParam('nick');
+        if (!nick) {
+            console.error("No nick provided in query string");
+            document.body.innerHTML = "<h1>Error: No nick provided in query string</h1>";
+            throw new Error("Nick not provided");
+        } else {
+            console.log("Nick:", nick);
+        }
+
+        // Display the nick directly
+        document.getElementById('text-container').innerText = `Nick: ${nick}`;
+
+        function clearData() {
+            // Clear local storage and session storage
+            localStorage.clear();
+            sessionStorage.clear();
+            alert('Cache Borrado.');
+        }
+
+        function handleWatch() {
+            // Example function to handle the "Watch" button click
+            // This will just show an alert with the current nick
+            alert(`Currently watching with Nick: ${nick}`);
+        }
+
+        // Debugging output for localStorage
+        function debugLocalStorage() {
+            const allKeys = Object.keys(localStorage);
+            console.log("LocalStorage contents:");
+            allKeys.forEach(key => {
+                console.log(key, ":", localStorage.getItem(key));
+            });
+        }
+
+        // Call debugLocalStorage to view current localStorage contents
+        debugLocalStorage();
+    </script>
+</body>
+</html>

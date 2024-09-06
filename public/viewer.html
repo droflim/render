@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv='cache-control' content='no-cache'>
+    <meta http-equiv='expires' content='0'>
+    <meta http-equiv='pragma' content='no-cache'>  
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/6.1.0/adapter.min.js"></script>
+    <title>Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        const broadcast_id = getQueryParam('broadcast_id');
+        if (!broadcast_id) {
+            document.body.innerHTML = "<h1>Error: No broadcast_id provided in query string</h1>";
+            throw new Error("Broadcast ID not provided");
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttonHtml = `
+                <button id="watchBtn">Watch ${broadcast_id}</button>
+            `;
+            document.getElementById('list-container').innerHTML = buttonHtml;
+
+            document.getElementById('watchBtn').addEventListener('click', async () => {
+                await createPeer();
+                document.getElementById("text-container").innerHTML = "Streaming on id: " + broadcast_id;
+            });
+        });
+
+        const configurationPeerConnection = {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun.stunprotocol.org" }
+            ]
+        };
+
+        const addTransceiverConstraints = { direction: "recvonly" };
+        let peer;
+        let localCandidates = [];
+        let remoteCandidates = [];
+
+        async function createPeer() {
+            localCandidates = [];
+            remoteCandidates = [];
+
+            if (peer) {
+                console.log("Existing peer connection found. Handling negotiation needed.");
+                // Avoid creating new offers if the connection already has a local offer
+                if (peer.signalingState === 'have-local-offer') {
+                    console.warn("Peer connection is in 'have-local-offer' state. Skipping negotiation.");
+                    return;
+                }
+                return handleNegotiationNeededEvent(peer);
+            }
+
+            peer = new RTCPeerConnection(configurationPeerConnection);
+
+            peer.addTransceiver("video", addTransceiverConstraints);
+            peer.addTransceiver("audio", addTransceiverConstraints); // Ensure audio is enabled
+
+            peer.ontrack = handleTrackEvent;
+            peer.onicecandidate = handleIceCandidateEvent;
+
+            peer.onnegotiationneeded = async () => {
+                console.log("Negotiation needed event triggered.");
+                await handleNegotiationNeededEvent(peer);
+            };
+
+            return peer;
+        }
+
+        async function handleNegotiationNeededEvent(peer) {
+            try {
+                // Check if the connection is in a valid state to handle a new negotiation
+                if (peer.signalingState === 'stable' || peer.signalingState === 'have-remote-offer') {
+                    const offer = await peer.createOffer();
+                    await peer.setLocalDescription(offer);
+                    const payload = {
+                        sdp: peer.localDescription,
+                        broadcast_id: broadcast_id,
+                    };
+                    const { data } = await axios.post('/consumer', payload);
+
+                    const sdp = data.data.sdp;
+                    if (!sdp || !sdp.type || !sdp.sdp) {
+                        throw new Error("Invalid SDP data received from server");
+                    }
+
+                    const desc = new RTCSessionDescription(sdp);
+
+                    await peer.setRemoteDescription(desc);
+
+                    localCandidates.forEach(candidate => {
+                        socket.emit("add-candidate-consumer", {
+                            id: broadcast_id,
+                            candidate: candidate
+                        });
+                    });
+
+                    remoteCandidates.forEach(candidate => {
+                        peer.addIceCandidate(new RTCIceCandidate(candidate));
+                    });
+                } else {
+                    console.warn("Peer connection signaling state is not suitable for setting remote description. Current state: ", peer.signalingState);
+                }
+            } catch (error) {
+                console.error("Error handling negotiation needed event:", error);
+            }
+        }
+
+        function handleTrackEvent(e) {
+            document.getElementById("video").srcObject = e.streams[0];
+        }
+
+        function handleIceCandidateEvent(e) {
+            if (e.candidate) {
+                localCandidates.push({
+                    'candidate': e.candidate.candidate,
+                    'sdpMid': e.candidate.sdpMid,
+                    'sdpMLineIndex': e.candidate.sdpMLineIndex
+                });
+            }
+        }
+
+        const socket = io('https://irc.chateachat.com:3000'); // Ensure to use HTTPS if your server requires it
+        let socket_id;
+
+        socket.on('from-server', function (_socket_id) {
+            socket_id = _socket_id;
+        });
+
+        socket.on("candidate-from-server", (data) => {
+            remoteCandidates.push(data);
+        });
+
+        socket.on("connect_error", (error) => {
+            console.error("Socket connection error:", error);
+        });
+
+        socket.on("disconnect", () => {
+            console.log("Socket disconnected");
+        });
+    </script>
+    <style> 
+        #video {
+            width: 200px;
+            height: 350px;
+        }
+    </style>
+</head>
+<body>
+    <div id="text-container"></div>
+    <div id="list-container"></div>
+    <video autoplay id='video'></video>
+</body>
+</html>

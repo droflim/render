@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Viewer</title>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/7.7.0/adapter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src='config.js'></script>
+</head>
+
+<body>
+    <h1>Viewer of Streaming</h1>
+    <video autoplay id='video'></video>
+    <div id="text-container"></div>
+    <div id="list-container"></div>
+
+    <script>
+        // Function to get query parameters
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        // Retrieve 'nick' parameter from URL
+        const nick = getQueryParam('nick');
+        if (!nick) {
+            console.error("No nick provided in query string");
+            document.body.innerHTML = "<h1>Error: No nick provided in query string</h1>";
+            throw new Error("Nick not provided");
+        } else {
+            console.log("Nick:", nick);
+        }
+
+        // Display the nick
+        document.getElementById("text-container").innerHTML = `Viewing stream as: ${nick}`;
+
+        // Set up WebRTC peer connection and handle streaming
+        let peer;
+        const configurationPeerConnection = {
+            iceServers: [{
+                urls: "stun:stun.services.mozilla.com"
+            }]
+        };
+        
+        const mediaConstraints = {
+            video: true,
+            audio: false
+        };
+
+        async function init() {
+            try {
+                // Create and configure the peer connection
+                peer = new RTCPeerConnection(configurationPeerConnection);
+
+                peer.onicecandidate = (event) => {
+                    if (event.candidate) {
+                        socket.emit("add-candidate-viewer", {
+                            candidate: event.candidate
+                        });
+                    }
+                };
+
+                peer.ontrack = (event) => {
+                    document.getElementById('video').srcObject = event.streams[0];
+                };
+
+                // Connect to the server and request the stream
+                const { data } = await axios.get(`/stream/${broadcast_id}`);
+                const desc = new RTCSessionDescription(data.sdp);
+                await peer.setRemoteDescription(desc);
+
+                // Handle incoming ICE candidates
+                socket.on("candidate-from-server", (candidate) => {
+                    peer.addIceCandidate(new RTCIceCandidate(candidate));
+                });
+            } catch (error) {
+                console.error("Error initializing peer connection: ", error);
+            }
+        }
+
+        // Socket.io integration
+        const socket = io(`${Config.host}:${Config.port}`);
+        let broadcast_id;
+
+        socket.on('broadcast-id', (id) => {
+            broadcast_id = id;
+            console.log("Received broadcast id: " + broadcast_id);
+            init();
+        });
+
+        socket.on("error", (error) => {
+            console.error("Socket error: ", error);
+        });
+    </script>
+</body>
+
+</html>

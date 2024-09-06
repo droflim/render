@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>  
+
+    <title>Viewer</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script>
+        // Obtener el broadcast_id de los parámetros de la URL
+        function getQueryParam(param) {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get(param);
+        }
+
+        const broadcast_id = getQueryParam('broadcast_id');
+        if (!broadcast_id) {
+            document.body.innerHTML = "<h1>Error: No broadcast_id provided in query string</h1>";
+            throw new Error("Broadcast ID not provided");
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const buttonHtml = `
+                <button id="watchBtn">Watch ${broadcast_id}</button>
+            `;
+            document.getElementById('list-container').innerHTML = buttonHtml;
+
+            document.getElementById('watchBtn').addEventListener('click', async () => {
+                await createPeer();
+                document.getElementById("text-container").innerHTML = "Streaming on id: " + broadcast_id;
+            });
+        });
+
+        const configurationPeerConnection = {
+            iceServers: [
+                { urls: "stun:stun.l.google.com:19302" },
+                { urls: "stun:stun.stunprotocol.org" }
+            ]
+        };
+
+        const addTransceiverConstraints = { direction: "recvonly" };
+        var peer;
+        var localCandidates = [];
+        var remoteCandidates = [];
+
+        async function createPeer() {
+            localCandidates = [];
+            remoteCandidates = [];
+            if (peer) {
+                return handleNegotiationNeededEvent(peer);
+            }
+
+            peer = new RTCPeerConnection(configurationPeerConnection);
+
+            peer.addTransceiver("video", addTransceiverConstraints);
+            peer.addTransceiver("audio", addTransceiverConstraints);
+
+            peer.ontrack = handleTrackEvent;
+            peer.onicecandidate = handleIceCandidateEvent;
+
+            peer.onnegotiationneeded = async () => await handleNegotiationNeededEvent(peer);
+
+            return peer;
+        }
+
+        async function handleNegotiationNeededEvent(peer) {
+            try {
+                const offer = await peer.createOffer();
+                await peer.setLocalDescription(offer);
+                const payload = {
+                    sdp: peer.localDescription,
+                    broadcast_id: broadcast_id,
+                };
+                const { data } = await axios.post('/consumer', payload);
+
+                // Ensure the received SDP is valid
+                const sdp = data.data.sdp;
+                if (!sdp || !sdp.type || !sdp.sdp) {
+                    throw new Error("Invalid SDP data received from server");
+                }
+
+                const desc = new RTCSessionDescription(sdp);
+
+                await peer.setRemoteDescription(desc);
+                console.log("Remote description set successfully");
+
+                // Send local candidates to server
+                localCandidates.forEach(candidate => {
+                    socket.emit("add-candidate-consumer", {
+                        id: broadcast_id,
+                        candidate: candidate
+                    });
+                });
+
+                // Add remote candidates to local peer
+                remoteCandidates.forEach(candidate => {
+                    peer.addIceCandidate(new RTCIceCandidate(candidate));
+                });
+
+            } catch (error) {
+                console.error("Error in handleNegotiationNeededEvent:", error);
+            }
+        }
+
+        function handleTrackEvent(e) {
+            document.getElementById("video").srcObject = e.streams[0];
+        }
+
+        function handleIceCandidateEvent(e) {
+            if (e.candidate) {
+                localCandidates.push({
+                    'candidate': e.candidate.candidate,
+                    'sdpMid': e.candidate.sdpMid,
+                    'sdpMLineIndex': e.candidate.sdpMLineIndex
+                });
+                console.log("Local ICE candidate:", e.candidate);
+            }
+        }
+
+        var socket = io('irc.chateachat.com:3000');
+
+        var socket_id;
+
+        socket.on('from-server', function (_socket_id) {
+            socket_id = _socket_id;
+            console.log("Connected with socket ID:", socket_id);
+        });
+
+        socket.on("candidate-from-server", (data) => {
+            console.log("Received ICE candidate from server:", data);
+            remoteCandidates.push(data);
+        });
+
+        socket.on("connect_error", (error) => {
+            console.error("Socket connection error:", error);
+        });
+
+        socket.on("disconnect", () => {
+            console.log("Socket disconnected");
+        });
+    </script>
+    <style> 
+        #video {
+            width: 200px;
+            height: 350px;
+        }
+    </style>
+</head>
+<body>
+    <div id="text-container"></div>
+    <div id="list-container"></div>
+    <video autoplay id='video'></video>
+</body>
+</html>

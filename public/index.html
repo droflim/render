@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+<meta http-equiv='cache-control' content='no-cache'>
+<meta http-equiv='expires' content='0'>
+<meta http-equiv='pragma' content='no-cache'>  
+       <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/webrtc-adapter/6.1.0/adapter.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.21.1/axios.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="config.js"></script>
+    <script src="index.js"></script>
+</head>
+<body>
+    
+    <div id="text-container"></div>
+    <div id="link"></div>
+    <video autoplay id="video" class="video-iframe"></video>
+<style>
+    #video {
+        width: 200px;  /* Ajusta el tamaño según tus necesidades */
+        height:150px; /* Ajusta el tamaño según tus necesidades */
+    }
+
+
+
+</style>
+</body>
+<script>
+    window.addEventListener('load', () => {
+        // Ejecutar el código después de 5 segundos
+        setTimeout(() => {
+            // Obtener el valor del contenedor de texto
+            let textContainer = document.getElementById("text-container");
+            let valor1 = textContainer ? textContainer.innerText.trim() : '';
+
+            // Almacenar el valor en window.valor1
+            window.valor1 = valor1;
+
+            // Verifica que el valor se haya establecido
+            console.log("Valor almacenado en window.valor1:", window.valor1);
+
+            // Enviar el valor al plugin
+            window.parent.postMessage({ type: 'SET_VALOR1', valor1: valor1 }, '*');
+        }, 5000); // Retraso de 5 segundos
+    });
+</script>
+<script>
+// En el lado del cliente
+
+// Escuchar el evento 'joined-lobby' para saber que se ha unido a la sala
+
+
+</script>
+</html>
