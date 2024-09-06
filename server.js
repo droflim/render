@@ -3,24 +3,19 @@ const cors = require('cors');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
-const https = require('https');
+const http = require('http');  // Cambiado a http para desarrollo local
 const socketIO = require('socket.io');
 
 // Configuración de CORS
 const corsOptions = {
-   origin: 'https://irc.chateachat.com',
+   origin: 'http://localhost:3000',  // Actualizado para localhost
    optionsSuccessStatus: 200,
 };
 
 const app = express();
 
-// Configuración de HTTPS
-const privateKey = fs.readFileSync('/etc/letsencrypt/live/irc.chateachat.com/privkey.pem', 'utf8');
-const certificate = fs.readFileSync('/etc/letsencrypt/live/irc.chateachat.com/fullchain.pem', 'utf8');
-const credentials = { key: privateKey, cert: certificate };
-
-// Crear servidor HTTPS
-const server = https.createServer(credentials, app);
+// Cambiar a HTTP para desarrollo local
+const server = http.createServer(app);
 const io = socketIO(server);
 
 // Middleware para prevenir caché
@@ -44,11 +39,11 @@ app.get("/s/:id", (req, res) => {
     res.sendFile('public/viewer.html', { root: __dirname });
 });
 
-const host = 'irc.chateachat.com';
+const host = 'localhost';  // Actualizado para localhost
 const port = 3000;
 
 server.listen(port, host, () => {
-  
+    console.log(`Server is running on http://${host}:${port}`);
 });
 
 require('./src/Route/route')(app);
