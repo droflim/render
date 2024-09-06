@@ -3,13 +3,14 @@ const cors = require('cors');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
-const http = require('http');  // Cambiado a http para desarrollo local
+const http = require('http');
 const socketIO = require('socket.io');
+require('dotenv').config(); // Load environment variables
 
 // Configuración de CORS
 const corsOptions = {
-   origin: 'http://0.0.0.0:4000',  // Actualizado para localhost
-   optionsSuccessStatus: 200,
+    origin: process.env.CORS_ORIGIN || '*',  // Use environment variable or allow all origins
+    optionsSuccessStatus: 200,
 };
 
 const app = express();
@@ -39,8 +40,8 @@ app.get("/s/:id", (req, res) => {
     res.sendFile('public/viewer.html', { root: __dirname });
 });
 
-const host = 'localhost';  // Actualizado para localhost
-const port = 3000;
+const port = process.env.PORT || 4000; // Use PORT environment variable or default to 4000
+const host = '0.0.0.0';  // Bind to 0.0.0.0 for external access
 
 server.listen(port, host, () => {
     console.log(`Server is running on http://${host}:${port}`);
