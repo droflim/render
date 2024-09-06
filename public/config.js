@@ -1,6 +1,6 @@
 // Configuración del servidor
 const Config = {
-    host: "irc.chateachat.com",
+    host: "localhost",
     port: 3000
 };
 
