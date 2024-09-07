@@ -64,7 +64,7 @@ async function handleNegotiationNeededEvent(peer) {
 
         localStorage.setItem('broadcast_id', broadcast_id);
 
-        const viewUrl = `http://0.0.0.0:4000/viewer.html?broadcast_id=${broadcast_id}&nick=${encodeURIComponent(nick)}`;
+        const viewUrl = `https://0.0.0.0:4000/viewer.html?broadcast_id=${broadcast_id}&nick=${encodeURIComponent(nick)}`;
         document.getElementById("text-container").innerHTML = `
             <a href="${viewUrl}" target="_blank">${viewUrl}</a>
         `;
