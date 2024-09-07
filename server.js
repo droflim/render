@@ -9,7 +9,7 @@ require('dotenv').config(); // Carga las variables de entorno
 
 // Configuración de CORS
 const corsOptions = {
-    origin: process.env.CORS_ORIGIN || '*',  // Usa la variable de entorno o permite todos los orígenes
+    origin: process.env.CORS_ORIGIN || '*', // Usa la variable de entorno o permite todos los orígenes
     optionsSuccessStatus: 200,
 };
 
@@ -21,7 +21,7 @@ const server = http.createServer(app);
 // Configura socket.io con opciones CORS
 const io = socketIO(server, {
     cors: {
-        origin: process.env.CORS_ORIGIN || '*',  // Usa la variable de entorno o permite todos los orígenes
+        origin: process.env.CORS_ORIGIN || '*', // Usa la variable de entorno o permite todos los orígenes
         methods: ["GET", "POST"],
         allowedHeaders: ["my-custom-header"],
         credentials: true
@@ -37,25 +37,26 @@ app.use((req, res, next) => {
 });
 
 app.use(cors(corsOptions));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public'))); // Asegúrate de servir archivos estáticos desde el directorio correcto
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Rutas para archivos estáticos
 app.get('/s', (req, res) => {
-    res.sendFile('public/index.html', { root: __dirname });
+    res.sendFile('index.html', { root: path.join(__dirname, 'public') });
 });
 
 app.get("/s/:id", (req, res) => {
-    res.sendFile('public/viewer.html', { root: __dirname });
+    res.sendFile('viewer.html', { root: path.join(__dirname, 'public') });
 });
 
 const port = process.env.PORT || 4000; // Usa la variable de entorno PORT o un valor por defecto
-const host = '0.0.0.0';  // Vincula a todas las interfaces
 
-server.listen(port, host, () => {
-    console.log(`Server is running on http://${host}:${port}`);
+server.listen(port, () => {
+    console.log(`Server is running on http://localhost:${port}`);
 });
 
+// Carga las rutas y eventos de Socket.IO
 require('./src/Route/route')(app);
 require('./src/Socket/socketEvent')(io);
 require('./src/Socket/socketFunction').init(io);
