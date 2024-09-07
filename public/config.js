@@ -1,6 +1,6 @@
 // Configuración del servidor
 const Config = {
-    host: "0.0.0.0",
+    host: "localhost",
     port: 4000
 };
 
