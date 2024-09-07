@@ -1,6 +1,6 @@
 // Configuración del servidor
 const Config = {
-    host: "https://0.0.0.0",
+    host: "https://render-bhza.onrender.com",
     port: 4000
 };
 
