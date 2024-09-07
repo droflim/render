@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
-const http = require('http'); // Usa http en lugar de https
+const http = require('http');
 const socketIO = require('socket.io');
 require('dotenv').config(); // Carga las variables de entorno
 
@@ -36,8 +36,9 @@ app.use((req, res, next) => {
     next();
 });
 
+// Aplicar CORS antes de cualquier otra cosa
 app.use(cors(corsOptions));
-app.use(express.static(path.join(__dirname, 'public'))); // Asegúrate de servir archivos estáticos desde el directorio correcto
+app.use(express.static(path.join(__dirname, 'public'))); // Servir archivos estáticos
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
