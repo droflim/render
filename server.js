@@ -50,7 +50,7 @@ app.get("/s/:id", (req, res) => {
 });
 
 const port = process.env.PORT || 4000; // Usa la variable de entorno PORT o un valor por defecto
-const host = 'https://0.0.0.0';  // Vincula a todas las interfaces
+const host = '0.0.0.0';  // Vincula a todas las interfaces
 
 server.listen(port, host, () => {
     console.log(`Server is running on http://${host}:${port}`);
