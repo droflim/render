@@ -3,7 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const express = require('express');
 const bodyParser = require('body-parser');
-const http = require('https'); // Usa http en lugar de https
+const http = require('http'); // Usa http en lugar de https
 const socketIO = require('socket.io');
 require('dotenv').config(); // Carga las variables de entorno
 
